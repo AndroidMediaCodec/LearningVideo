@@ -7,12 +7,20 @@
 #include <unistd.h>
 #include "media/player/def_player/player.h"
 #include "media/player/gl_player/gl_player.h"
+#include "media/muxer/ff_repack.h"
+#include "media/synthesizer/synthesizer.h"
 
 extern "C" {
     #include <libavcodec/avcodec.h>
     #include <libavformat/avformat.h>
     #include <libavfilter/avfilter.h>
     #include <libavcodec/jni.h>
+
+    JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
+        av_jni_set_java_vm(vm, reserved);
+        LOG_INFO("JNI_OnLoad", "--------", "");
+        return JNI_VERSION_1_4;
+    }
 
     JNIEXPORT jstring JNICALL
     Java_com_cxp_learningvideo_FFmpegActivity_ffmpegInfo(JNIEnv *env, jobject  /* this */) {
@@ -41,7 +49,6 @@ extern "C" {
         }
         return env->NewStringUTF(info);
     }
-
 
     JNIEXPORT jint JNICALL
     Java_com_cxp_learningvideo_FFmpegActivity_createPlayer(JNIEnv *env,
@@ -86,12 +93,47 @@ extern "C" {
         p->PlayOrPause();
     }
 
-
     JNIEXPORT void JNICALL
     Java_com_cxp_learningvideo_FFmpegGLPlayerActivity_stop(JNIEnv *env,
                                                           jobject  /* this */,
                                                           jint player) {
         GLPlayer *p = (GLPlayer *) player;
         p->Release();
+    }
+
+    JNIEXPORT jint JNICALL
+    Java_com_cxp_learningvideo_FFRepackActivity_createRepack(JNIEnv *env,
+                                                           jobject  /* this */,
+                                                           jstring srcPath,
+                                                           jstring destPath) {
+        FFRepack *repack = new FFRepack(env, srcPath, destPath);
+        return (jint) repack;
+    }
+
+    JNIEXPORT void JNICALL
+    Java_com_cxp_learningvideo_FFRepackActivity_startRepack(JNIEnv *env,
+                                                           jobject  /* this */,
+                                                           jint repack) {
+        FFRepack *ffRepack = (FFRepack *) repack;
+        ffRepack->Start();
+    }
+
+
+    JNIEXPORT jint JNICALL
+    Java_com_cxp_learningvideo_FFEncodeActivity_initEncoder(JNIEnv *env, jobject thiz, jstring inPath, jstring outPath) {
+        Synthesizer *synthesizer = new Synthesizer(env, inPath, outPath);
+        return (jint)synthesizer;
+    }
+
+    JNIEXPORT void JNICALL
+    Java_com_cxp_learningvideo_FFEncodeActivity_startEncoder(JNIEnv *env, jobject thiz, jint synthesizer) {
+        Synthesizer *s =  (Synthesizer *)synthesizer;
+        s->Start();
+    }
+
+    JNIEXPORT void JNICALL
+    Java_com_cxp_learningvideo_FFEncodeActivity_releaseEncoder(JNIEnv *env, jobject thiz, jint synthesizer) {
+        Synthesizer *s =  (Synthesizer *)synthesizer;
+        delete synthesizer;
     }
 }
